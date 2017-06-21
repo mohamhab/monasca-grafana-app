@@ -85,6 +85,8 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
           this.alertSrv = alertSrv;
           this.monasca = new MonascaClient(backendSrv, datasourceSrv);
           this.filters = [];
+          this.sFilters = [];
+          this.sBool = false;
           this.editFilterIndex = -1;
 
           if ('dimensions' in $location.search()) {
@@ -94,11 +96,16 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
               var _ref2 = _slicedToArray(_ref, 2),
                   k = _ref2[0],
                   v = _ref2[1];
-
+              
               return { key: k, value: v };
             });
           }
 
+          if(('state' in $location.search()) || ('severity' in $location.search())){
+            this.sFilters = $location.search();
+            this.sBool = true;
+          }
+           
           this.pageLoaded = false;
           this.loadFailed = false;
           this.alarms = [];
@@ -132,6 +139,11 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
             this.filters.push({});
           }
         }, {
+          key: 'addSFilter',
+          value: function addSFilter() {
+            this.sFilters.push({});
+          }
+        }, {
           key: 'removeFilter',
           value: function removeFilter(index) {
             var filter = this.filters[index];
@@ -153,26 +165,51 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
             }
           }
         }, {
+          key: 'applySFilter',
+          value: function applySFilter() {
+            // Check filter is complete before applying.
+            if (this.sFilters.every(function (f) {
+              return (f != null);
+            })){
+              this.sBool = true;
+              this.refreshAlarms();
+            }
+          }
+        }, {
           key: 'refreshAlarms',
           value: function refreshAlarms() {
             if (this.pageLoaded) {
               this.pageLoaded = false;
               this.loadAlarms();
+              this.pageLoaded = true;
             }
           }
         }, {
           key: 'loadAlarms',
           value: function loadAlarms() {
             var _this = this;
-
-            this.monasca.listAlarms(this.filters).then(function (alarms) {
-              _this.alarms = alarms;
-            }).catch(function (err) {
-              _this.alertSrv.set("Failed to get alarms.", err.message, 'error', 10000);
-              _this.loadFailed = true;
-            }).then(function () {
-              _this.pageLoaded = true;
-            });
+            
+            if(this.sBool){
+               this.monasca.listSAlarms(this.sFilters).then(function (alarms) {
+                _this.alarms = alarms;
+              }).catch(function (err) {
+                _this.alertSrv.set("Failed to get alarms.", err.message, 'error', 10000);
+                _this.loadFailed = true;
+              }).then(function () {
+                _this.pageLoaded = true;
+              });
+            }
+            else{
+              this.monasca.listAlarms(this.filters).then(function (alarms) {
+                _this.alarms = alarms;
+              }).catch(function (err) {
+                _this.alertSrv.set("Failed to get alarms.", err.message, 'error', 10000);
+                _this.loadFailed = true;
+              }).then(function () {
+                _this.pageLoaded = true;
+              });
+            }
+            
           }
         }, {
           key: 'setAlarmDeleting',

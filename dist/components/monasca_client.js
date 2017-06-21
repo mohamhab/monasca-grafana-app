@@ -76,12 +76,30 @@ System.register(['app/core/config', 'app/core/app_events'], function (_export, _
           key: 'listAlarms',
           value: function listAlarms(dimensions) {
             var params = {};
+
             if (dimensions) {
               params.metric_dimensions = dimensions.map(function (d) {
                 return d.key + ':' + d.value;
               }).join(',');
             }
+            console.log(dimensions);
             return this._get('/v2.0/alarms/', params).then(function (resp) {
+              return resp.data.elements;
+            }).catch(function (err) {
+              throw err;
+            });
+          }
+        }, {
+          key: 'listSAlarms',
+          value: function listSAlarms(dimensions) {
+            var params = {};
+
+            if (dimensions) {
+              params.state = dimensions;
+              
+            }
+            console.log(dimensions);
+            return this._get('/v2.0/alarms/', dimensions).then(function (resp) {
               return resp.data.elements;
             }).catch(function (err) {
               throw err;
