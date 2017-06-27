@@ -84,19 +84,21 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
 
           this.alertSrv = alertSrv;
           this.monasca = new MonascaClient(backendSrv, datasourceSrv);
-          this.filters = [];
-          this.sFilters = [];
-          this.sBool = false;
+          this.dimensionFilters = [];
+          this.stateFilters = [];
+          this.severityFilters = [];
+          this.stateBool = false;
+          this.severityBool = false;
           this.editFilterIndex = -1;
 
           if ('dimensions' in $location.search()) {
-            this.filters = $location.search().dimensions.split(',').map(function (kv) {
+            this.dimensionFilters = $location.search().dimensions.split(',').map(function (kv) {
               return kv.split(':');
             }).map(function (_ref) {
               var _ref2 = _slicedToArray(_ref, 2),
                   k = _ref2[0],
                   v = _ref2[1];
-              
+
               return { key: k, value: v };
             });
           }
@@ -105,7 +107,7 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
             this.sFilters = $location.search();
             this.sBool = true;
           }
-           
+
           this.pageLoaded = false;
           this.loadFailed = false;
           this.alarms = [];
@@ -123,7 +125,7 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
         }, {
           key: '_suggestDimensionValues',
           value: function _suggestDimensionValues(query, callback) {
-            var filter = this.filters[this.editFilterIndex];
+            var filter = this.dimensionFilters[this.editFilterIndex];
             if (filter && filter.key) {
               this.monasca.listDimensionValues(filter.key).then(callback);
             }
@@ -136,18 +138,13 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
         }, {
           key: 'addFilter',
           value: function addFilter() {
-            this.filters.push({});
-          }
-        }, {
-          key: 'addSFilter',
-          value: function addSFilter() {
-            this.sFilters.push({});
+            this.dimensionFilters.push({});
           }
         }, {
           key: 'removeFilter',
           value: function removeFilter(index) {
-            var filter = this.filters[index];
-            this.filters.splice(index, 1);
+            var filter = this.dimensionFilters[index];
+            this.dimensionFilters.splice(index, 1);
 
             // Don't refresh if the filter was never valid enough to be applied.
             if (filter.key && filter.value) {
@@ -158,20 +155,9 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
           key: 'applyFilter',
           value: function applyFilter() {
             // Check filter is complete before applying.
-            if (this.filters.every(function (f) {
+            if (this.dimensionFilters.every(function (f) {
               return f.key && f.value;
             })) {
-              this.refreshAlarms();
-            }
-          }
-        }, {
-          key: 'applySFilter',
-          value: function applySFilter() {
-            // Check filter is complete before applying.
-            if (this.sFilters.every(function (f) {
-              return (f != null);
-            })){
-              this.sBool = true;
               this.refreshAlarms();
             }
           }
@@ -188,9 +174,9 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
           key: 'loadAlarms',
           value: function loadAlarms() {
             var _this = this;
-            
-            if(this.sBool){
-               this.monasca.listSAlarms(this.sFilters).then(function (alarms) {
+
+            if(this.stateBool){
+               this.monasca.listSAlarms(this.stateFilters[0]).then(function (alarms) {
                 _this.alarms = alarms;
               }).catch(function (err) {
                 _this.alertSrv.set("Failed to get alarms.", err.message, 'error', 10000);
@@ -199,8 +185,8 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
                 _this.pageLoaded = true;
               });
             }
-            else{
-              this.monasca.listAlarms(this.filters).then(function (alarms) {
+            if(this.severityBool){
+               this.monasca.listSAlarms(this.severityFilters[0]).then(function (alarms) {
                 _this.alarms = alarms;
               }).catch(function (err) {
                 _this.alertSrv.set("Failed to get alarms.", err.message, 'error', 10000);
@@ -209,7 +195,17 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
                 _this.pageLoaded = true;
               });
             }
-            
+            else {
+              this.monasca.listAlarms(this.dimensionFilters).then(function (alarms) {
+                _this.alarms = alarms;
+              }).catch(function (err) {
+                _this.alertSrv.set("Failed to get alarms.", err.message, 'error', 10000);
+                _this.loadFailed = true;
+              }).then(function () {
+                _this.pageLoaded = true;
+              });
+            }
+
           }
         }, {
           key: 'setAlarmDeleting',
@@ -260,6 +256,60 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
                 _this3.confirmDeleteAlarm(alarm.id);
               }
             });
+          }
+        }, {
+          key: 'addStateFilter',
+          value: function addStateFilter() {
+            this.stateFilters.push({});
+          }
+        }, {
+          key: 'removeStateFilter',
+          value: function removeStateFilter(index) {
+            var filter = this.stateFilters[index];
+            this.stateFilters.splice(index, 1);
+
+            // Don't refresh if the filter was never valid enough to be applied.
+            if (filter.value) {
+              this.refreshAlarms();
+            }
+          }
+        }, {
+          key: 'applyStateFilter',
+          value: function applyStateFilter() {
+            // Check filter is complete before applying.
+            if (this.stateFilters.every(function (f) {
+              return f.state;
+            })){
+              this.stateBool = true;
+              this.refreshAlarms();
+            }
+          }
+        }, {
+          key: 'addSeverityFilter',
+          value: function addSeverityFilter() {
+            this.severityFilters.push({});
+          }
+        }, {
+          key: 'removeSeverityFilter',
+          value: function removeSeverityFilter(index) {
+            var filter = this.severityFilters[index];
+            this.severityFilters.splice(index, 1);
+
+            // Don't refresh if the filter was never valid enough to be applied.
+            if (filter.severity) {
+              this.refreshAlarms();
+            }
+          }
+        }, {
+          key: 'applySeverityFilter',
+          value: function applySeverityFilter() {
+            // Check filter is complete before applying.
+            if (this.severityFilters.every(function (f) {
+              return f.severity;
+            })){
+              this.severityBool = true;
+              this.refreshAlarms();
+            }
           }
         }]);
 
