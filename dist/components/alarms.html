@@ -53,7 +53,6 @@
            ng-model="filter.key"
 	   ng-disabled="ctrl.id"
            bs-typeahead="ctrl.suggestDimensionNames"
-	   ng-blur="ctrl.applyFilter()"
            data-min-length=0
 	   required
            style="margin-right:0;">
@@ -68,7 +67,8 @@
 	   ng-disabled="ctrl.id"
            bs-typeahead="ctrl.suggestDimensionValues"
 	   ng-focus="ctrl.editFilter($index)"
-	   ng-blur="ctrl.applyFilter()"
+		 ng-blur="ctrl.applyFilter()"
+
            data-min-length=0
 	   required
            style="margin-right:0;">
@@ -107,7 +107,8 @@
            ng-model="filter.state"
 	   ng-disabled="ctrl.id"
 	   ng-focus="ctrl.editFilter($index)"
-	   ng-blur="ctrl.applyStateFilter()"
+		 ng-blur="ctrl.applyStateFilter()"
+
            data-min-length=0
 	   required
            style="margin-right:0;">
@@ -144,9 +145,9 @@
            class="gf-form-input max-width-15"
            placeholder="e.g. LOW"
            ng-model="filter.severity"
+					 ng-blur="ctrl.applySeverityFilter()"
 	   ng-disabled="ctrl.id"
 	   ng-focus="ctrl.editFilter($index)"
-	   ng-blur="ctrl.applySeverityFilter()"
            data-min-length=0
 	   required
            style="margin-right:0;">
@@ -167,6 +168,11 @@
 
   </div>
 </form>
+
+
+<!-- <form ng-submit=ctrl.applyAllFilters()>
+  <input type="submit" id="submit" value="Submit" />
+</form> -->
 
 <div ng-if="ctrl.pageLoaded && !ctrl.updateFailed && ctrl.alarms.length > 0">
 

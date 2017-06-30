@@ -105,7 +105,6 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
 
           if(('state' in $location.search()) || ('severity' in $location.search())){
             this.sFilters = $location.search();
-            this.sBool = true;
           }
 
           this.pageLoaded = false;
@@ -303,6 +302,17 @@ System.register(['app/core/config', 'app/core/app_events', './monasca_client'], 
         }, {
           key: 'applySeverityFilter',
           value: function applySeverityFilter() {
+            // Check filter is complete before applying.
+            if (this.severityFilters.every(function (f) {
+              return f.severity;
+            })){
+              this.severityBool = true;
+              this.refreshAlarms();
+            }
+          }
+        }, {
+          key: 'applyAllFilters',
+          value: function applyAllFilters() {
             // Check filter is complete before applying.
             if (this.severityFilters.every(function (f) {
               return f.severity;
